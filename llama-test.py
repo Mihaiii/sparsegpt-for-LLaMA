@@ -325,7 +325,3 @@ if __name__ == '__main__':
                     print(f"Skipping {name} due to KeyError")
         llama_pack(model, pruners)
         torch.save(model.state_dict(), args.save)
-
-    if args.wandb_logging:
-        assert has_wandb, "wandb is not installed. Run `pip install wandb`"
-        wandb.init(config=args)
