@@ -205,8 +205,6 @@ def llama_eval(model, testenc, dev):
     ppl = torch.exp(torch.stack(nlls).sum() / (nsamples * model.seqlen))
     # print(ppl.item())
     print(f"Perplexity: {ppl.item():3f}")
-    if log_wandb:
-        wandb.log({f'{dataset}/perplexity': ppl.item()})
 
     model.config.use_cache = use_cache
 
@@ -288,10 +286,6 @@ if __name__ == '__main__':
         '--save', type=str, default='',
         help='Save the pruned checkpoint under this name'
     )
-    parser.add_argument(
-        '--wandb_logging', type='store_true',
-        help='Log the evaluation steps with wandb'
-    )
 
     args = parser.parse_args()
 
@@ -323,9 +317,12 @@ if __name__ == '__main__':
         pruned_model = copy.deepcopy(model)
         for name, module in pruned_model.named_modules():
             if isinstance(module, nn.Linear) and "attn" not in name:
-                mask = pruners[name].get_mask()
-                module.weight.data *= mask
-                module.bias.data *= mask.sum(dim=1)
+                try:
+                    mask = pruners[name].get_mask()
+                    module.weight.data *= mask
+                    module.bias.data *= mask.sum(dim=1)
+                except KeyError:
+                    print(f"Skipping {name} due to KeyError")
         llama_pack(model, pruners)
         torch.save(model.state_dict(), args.save)
 
